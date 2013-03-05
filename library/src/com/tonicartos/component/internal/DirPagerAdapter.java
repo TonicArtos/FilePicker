@@ -3,7 +3,6 @@ package com.tonicartos.component.internal;
 
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
-import android.util.Log;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -18,11 +17,11 @@ public class DirPagerAdapter extends FragmentPagerAdapter {
         super(fm);
     }
 
-    public void addDir(int id, String name, String path) {
+    public void addDir(File file) {
         if (mRootNode == null) {
-            mRootNode = new DirNode(id, name, path.split(File.separator).length);
+            mRootNode = new DirNode(file);
             notifyDataSetChanged();
-        } else if (mRootNode.addPath(id, name, path.split(File.separator).length)) {
+        } else if (mRootNode.addPath(file)) {
             notifyDataSetChanged();
         }
     }
@@ -59,9 +58,8 @@ public class DirPagerAdapter extends FragmentPagerAdapter {
         }
     }
 
-    public void setRootDir(int id, String name, String path) {
-        Log.d("asdf", id + " " + name + " " + path);
-        mRootNode = new DirNode(id, name, path.split(File.separator).length);
+    public void setRootDir(File file) {
+        mRootNode = new DirNode(file);
         notifyDataSetChanged();
     }
 
@@ -73,9 +71,13 @@ public class DirPagerAdapter extends FragmentPagerAdapter {
          */
         private List<DirNode> mChildren;
         /**
+         * Path that this node represents.
+         */
+        private File mFile;
+        /**
          * File path depth.
          */
-        private int mPathDepth;
+        private int mFileDepth;
         /**
          * Fragment this node represents.
          */
@@ -96,18 +98,14 @@ public class DirPagerAdapter extends FragmentPagerAdapter {
          * The title of this directory.
          */
         private String mTitle;
-        /**
-         * Directory (MediaStore ID) this node represents.
-         */
-        private int mId;
 
         /**
          * Create a new DirNode with a parent.
          * 
          * @param parent Parent of new node.
          */
-        public DirNode(DirNode parent, int id, String name) {
-            this(id, name, parent.mPathDepth + 1);
+        public DirNode(DirNode parent, File file) {
+            this(file);
             mNodeDepth = parent.getDepth() + 1;
             mParent = parent;
         }
@@ -115,12 +113,12 @@ public class DirPagerAdapter extends FragmentPagerAdapter {
         /**
          * Create a new root DirNode.
          */
-        public DirNode(int id, String name, int pathDepth) {
-            mTitle = name;
-            mId = id;
-            mFragment = DirFragment.newInstance(id, name, mNumColumns, mColumnWidth);
+        public DirNode(File file) {
+            mTitle = file.getName();
+            mFile = file;
+            mFragment = DirFragment.newInstance(file, mNumColumns, mColumnWidth);
             mChildren = new ArrayList<DirNode>();
-            mPathDepth = pathDepth;
+            mFileDepth = file.getPath().split(File.separator).length;
         }
 
         /**
@@ -186,16 +184,15 @@ public class DirPagerAdapter extends FragmentPagerAdapter {
         /**
          * Add a file to the history and/or switch to the history for the file.
          * 
-         * @param name
          * @param newPath Path to add/switch to.
          * @return True if the active data set has changed. False if no change
          *         (path was already in the selected history).
          */
-        protected boolean addPath(int id, String name, int pathDepth) {
-            int depthDelta = pathDepth - mPathDepth;
+        protected boolean addPath(File file) {
+            int depthDelta = file.getPath().split(File.separator).length - mFileDepth;
             if (depthDelta == 1) {
                 for (int i = 0; i < mChildren.size(); i++) {
-                    if (id == mChildren.get(i).mId) {
+                    if (file.compareTo(mChildren.get(i).mFile) == 0) {
                         if (i == 0) {
                             // Already in the currently selected history and we
                             // don't need to changes the data set.
@@ -207,23 +204,23 @@ public class DirPagerAdapter extends FragmentPagerAdapter {
                         return DATA_SET_CHANGED;
                     }
                 }
-                addChild(new DirNode(this, id, name));
+                addChild(new DirNode(this, file));
                 return DATA_SET_CHANGED;
             } else if (depthDelta > 1) {
                 // Assume that only the active history will have paths added so
                 // pass on down to the zeroth child.
-                return mChildren.get(0).addPath(id, name, pathDepth);
+                return mChildren.get(0).addPath(file);
             } else if (mParent == null) {
-                throw new RuntimeException("Illegal attempt to add " + id + ": " + name
+                throw new RuntimeException("Illegal attempt to add " + file.getPath()
                         + " to parent node where no parent exists.");
             } else {
-                return mParent.addPath(id, name, pathDepth);
+                return mParent.addPath(file);
             }
         }
 
         /**
          * Fetch the node at the given depth in the active history for this
-         * node. This lets the pager page up and down the active path.
+         * node.
          * 
          * @param i Depth to select node at.
          * @return Node at requested depth.

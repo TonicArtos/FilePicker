@@ -13,6 +13,11 @@ import java.io.FilenameFilter;
 
 public class MainActivity extends SherlockFragmentActivity implements FilePickerFragment.Callbacks {
     @Override
+    public FilenameFilter getfilter() {
+        return null;
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
@@ -23,10 +28,5 @@ public class MainActivity extends SherlockFragmentActivity implements FilePicker
         filePickerFragment.setColumnWidth((int)TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 180, getResources().getDisplayMetrics()));
         filePickerFragment.setNumColumns(StickyGridHeadersGridView.AUTO_FIT);
-    }
-
-    @Override
-    public FilenameFilter getfilter() {
-        return null;
     }
 }

@@ -5,15 +5,8 @@ import com.tonicartos.component.R;
 import com.tonicartos.widget.stickygridheaders.StickyGridHeadersBaseAdapter;
 
 import android.annotation.SuppressLint;
-import android.database.Cursor;
-import android.os.Bundle;
 import android.os.FileObserver;
-import android.provider.MediaStore;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.LoaderManager.LoaderCallbacks;
-import android.support.v4.content.CursorLoader;
-import android.support.v4.content.Loader;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,13 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FileSystemAdapter extends ArrayAdapter<String> implements
-        StickyGridHeadersBaseAdapter, LoaderCallbacks<Cursor> {
-    private static final int LOADER_DIR = 0x01;
-    private static final int LOADER_DIR_CONTENTS = 0x02;
-    private static final String ARG_DIRPATH = "arg_filepath";
-    private static final String ARG_DIR_ID = "arg_dir_id";
-
+public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGridHeadersBaseAdapter {
     private static FilenameFilter sDefaultFilter = new FilenameFilter() {
         @Override
         public boolean accept(File dir, String filename) {
@@ -57,14 +44,11 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
     private FragmentActivity mContext;
     private File mDir;
     private FileComparator mFileComparator = new FileComparator();
-    private Cursor mFileMetadata;
     private DirObserver mFileObserverExtension;
     private FilenameFilter mFilter;
     private Map<String, HeaderData> mHeaderMap;
     private List<HeaderData> mHeaders;
-
     private LayoutInflater mInflater;
-    private long mDirId;
 
     public FileSystemAdapter(FragmentActivity context, File file) {
         this(context, file, sDefaultFilter, false);
@@ -80,11 +64,12 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
 
     public FileSystemAdapter(FragmentActivity context, File file, FilenameFilter filter,
             boolean caseInsensitive) {
-        super(context, android.R.layout.simple_list_item_1, android.R.id.text1);
+        super(context, android.R.layout.simple_list_item_1, android.R.id.text1,
+                new ArrayList<String>(Arrays.asList(file.list(filter))));
 
         mDir = file;
-
         mFilter = filter;
+
         mInflater = LayoutInflater.from(context);
         mContext = context;
         mCaseInsensitive = caseInsensitive;
@@ -93,9 +78,8 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
         mFileObserverExtension = new DirObserver(file.getPath());
         mFileObserverExtension.startWatching();
 
-        Bundle bundle = new Bundle();
-        bundle.putString(ARG_DIRPATH, file.getPath());
-        mContext.getSupportLoaderManager().initLoader(LOADER_DIR, bundle, this);
+        sort(mFileComparator);
+        buildHeaders();
     }
 
     @Override
@@ -131,9 +115,6 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
      */
     private void buildHeaders() {
         mHeaderMap = new HashMap<String, HeaderData>();
-        if (mFileMetadata == null) {
-            return;
-        }
         for (int i = 0; i < getCount(); i++) {
             File file = new File(mDir, getItem(i));
             String header = getFileSectionHeader(file);
@@ -173,9 +154,13 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
      */
     protected void decrementHeader(String ext) {
         HeaderData hd = mHeaderMap.get(ext);
+        if (hd == null) {
+            return;
+        }
         hd.count--;
         if (hd.count == 0) {
             mHeaders.remove(hd);
+            mHeaderMap.remove(ext);
         }
     }
 
@@ -189,47 +174,13 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
         if (file.isDirectory()) {
             return "Folder";
         }
-        if (!mFileMetadata.moveToFirst()) {
-            return "Error";
-        }
-        String header = null;
-        if (TextUtils.equals(mFileMetadata.getString(mFileMetadata
-                .getColumnIndex(MediaStore.Files.FileColumns.TITLE)), file.getName())) {
-            header = mFileMetadata.getString(mFileMetadata
-                    .getColumnIndex(MediaStore.Files.FileColumns.MIME_TYPE));
-        } else {
-            while (mFileMetadata.moveToNext()) {
-                if (TextUtils.equals(mFileMetadata.getString(mFileMetadata
-                        .getColumnIndex(MediaStore.Files.FileColumns.TITLE)), file.getName())) {
-                    header = mFileMetadata.getString(mFileMetadata
-                            .getColumnIndex(MediaStore.Files.FileColumns.MIME_TYPE));
-                }
-            }
-        }
-
+        String header = ExtensionMapper.getHeader(file);
         if (header == null) {
             header = "Unknown";
         }
 
         return header;
     }
-
-    // private final class InitialFilterWrapper implements FilenameFilter {
-    // private FilenameFilter mFilter;
-    //
-    // public InitialFilterWrapper(FilenameFilter filter) {
-    // mFilter = filter;
-    // }
-    //
-    // @Override
-    // public boolean accept(File dir, String filename) {
-    // File f = new File(dir, filename);
-    // if (!f.isDirectory()) {
-    // return false;
-    // }
-    // return mFilter.accept(dir, filename);
-    // }
-    // }
 
     /**
      * Increment the count for the file extension. Creates and adds new data for
@@ -242,12 +193,16 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
         if (hd == null) {
             hd = new HeaderData();
             hd.header = ext;
-            mHeaders.add(hd);
+            boolean added = false;
             for (int i = 0; i < mHeaders.size(); i++) {
                 if (compareCis(ext, mHeaders.get(i).header) < 0) {
                     mHeaders.add(i, hd);
+                    added = true;
                     break;
                 }
+            }
+            if (!added) {
+                mHeaders.add(hd);
             }
         }
         hd.count++;
@@ -259,23 +214,25 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
      */
     private final class DirObserver extends FileObserver {
         private DirObserver(String path) {
-            super(path, ALL_EVENTS);
+            super(path, CREATE | DELETE);
         }
 
         @Override
         public void onEvent(final int event, final String path) {
+            if (!mFilter.accept(mDir, path)) {
+                return;
+            }
             mContext.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     switch (event & ALL_EVENTS) {
-                        case FileObserver.CREATE:
-                        case FileObserver.MOVED_TO:
+                        case CREATE:
                             incrementHeader(getFileSectionHeader(new File(mDir, path)));
                             add(path); // Notifies data set changed.
                             sort(mFileComparator);
+
                             break;
-                        case FileObserver.DELETE:
-                        case FileObserver.MOVED_FROM:
+                        case DELETE:
                             decrementHeader(getFileSectionHeader(new File(mDir, path)));
                             remove(path); // Notifies data set changed.
                             sort(mFileComparator);
@@ -332,51 +289,5 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements
      */
     private final class ViewHolder {
         public TextView textView;
-    }
-
-    @Override
-    public Loader<Cursor> onCreateLoader(int loaderId, Bundle bundle) {
-        switch (loaderId) {
-            case LOADER_DIR:
-                return new CursorLoader(mContext, MediaStore.Files.getContentUri("external"), null,
-                        MediaStore.Files.FileColumns.DATA + "=" + bundle.getString(ARG_DIRPATH),
-                        null, null);
-            case LOADER_DIR_CONTENTS:
-            default:
-                return new CursorLoader(mContext, MediaStore.Files.getContentUri("external"), null,
-                        MediaStore.Files.FileColumns.PARENT + "=" + bundle.getInt(ARG_DIR_ID),
-                        null, null);
-        }
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> l, Cursor c) {
-        switch (l.getId()) {
-            case LOADER_DIR:
-                mDirId = getDirMediaStoreId(c); 
-                break;
-            case LOADER_DIR_CONTENTS:
-                mFileMetadata = c;
-                // Got MediaStore metadata so load the actual directory listing.
-                addAll(new ArrayList<String>(Arrays.asList(mDir.list(mFilter))));
-                sort(mFileComparator);
-                buildHeaders();
-                break;
-        }
-    }
-
-    private long getDirMediaStoreId(Cursor c) {
-        if (!c.moveToFirst()) {
-            return -1;
-        }
-        
-        return c.getLong(c.getColumnIndex(MediaStore.Files.FileColumns._ID));
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> arg0) {
-        mFileMetadata = null;
-        clear();
-        buildHeaders();
     }
 }
