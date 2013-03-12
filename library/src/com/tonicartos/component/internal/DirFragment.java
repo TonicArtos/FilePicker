@@ -130,9 +130,9 @@ public class DirFragment extends SherlockFragment implements OnItemClickListener
         getArguments().putInt(ARG_NUM_COLS, numColumns);
     }
 
-    public void update(File file) {
-        if (mFile == null || TextUtils.equals(file.getPath(), mFile.getPath())) {
-            return;
+    public boolean update(File file) {
+        if (mFile == null || mFilesGrid == null || mRootView == null || TextUtils.equals(file.getPath(), mFile.getPath())) {
+            return false;
         }
 
         mFile = file;
@@ -141,10 +141,8 @@ public class DirFragment extends SherlockFragment implements OnItemClickListener
         mRootView.findViewById(android.R.id.empty).setVisibility(View.GONE);
 
         initAdapter();
-        if (mFilesGrid == null) {
-            throw new IllegalStateException("bad noose");
-        }
         mFilesGrid.setAdapter(mFsAdapter);
+        return true;
     }
 
     private void initAdapter() {

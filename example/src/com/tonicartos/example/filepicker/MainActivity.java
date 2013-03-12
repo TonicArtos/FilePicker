@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 public class MainActivity extends SherlockFragmentActivity implements FilePickerFragment.Callbacks {
     private Toast mCurrentToast;
+    private FilePickerFragment mFilePickerFragment;
 
     @Override
     public FilenameFilter getfilter() {
@@ -31,14 +32,14 @@ public class MainActivity extends SherlockFragmentActivity implements FilePicker
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         setContentView(R.layout.main);
 
-        FilePickerFragment filePickerFragment = (FilePickerFragment)getSupportFragmentManager()
+        mFilePickerFragment = (FilePickerFragment)getSupportFragmentManager()
                 .findFragmentById(R.id.fragment);
         if (savedInstanceState == null) {
-            filePickerFragment.setRootDir(Environment.getExternalStorageDirectory());
-            filePickerFragment.setColumnWidth((int)TypedValue.applyDimension(
+            mFilePickerFragment.setRootDir(Environment.getExternalStorageDirectory());
+            mFilePickerFragment.setColumnWidth((int)TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP, 180, getResources().getDisplayMetrics()));
-            filePickerFragment.setNumColumns(StickyGridHeadersGridView.AUTO_FIT);
-            filePickerFragment.setMultiSelectEnabled(true);
+            mFilePickerFragment.setNumColumns(StickyGridHeadersGridView.AUTO_FIT);
+            mFilePickerFragment.setMultiSelectEnabled(true);
         }
         getResources().getString(R.string.header_documents);
     }
@@ -72,6 +73,13 @@ public class MainActivity extends SherlockFragmentActivity implements FilePicker
                 return mimeType;
             }
         };
+    }
+    
+    @Override
+    public void onBackPressed() {
+        if (!mFilePickerFragment.goBack()) {
+            super.onBackPressed();
+        }
     }
 
     @Override

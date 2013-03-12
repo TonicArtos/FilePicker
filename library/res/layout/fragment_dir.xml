@@ -20,6 +20,6 @@
         android:gravity="center"
         android:visibility="gone"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/label_empty" />
+        android:text="@string/fp__label_empty" />
 
 </FrameLayout>

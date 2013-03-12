@@ -8,35 +8,40 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.PagerAdapter;
+import android.util.Pair;
 import android.view.View;
 import android.view.ViewGroup;
 
 import java.io.File;
+import java.util.Stack;
 
 public class DirPagerAdapter extends PagerAdapter {
     protected static String makeFragmentName(int viewId, int index) {
         return "android:switcher:" + viewId + ":" + index;
     }
 
+    private Stack<DirNode> mBackHistory;
     private int mColumnWidth;
+    private DirNode mCurrentNode;
     private Fragment mCurrentPrimaryItem;
     private FragmentTransaction mCurTransaction = null;
-    // private List<DirFragment> mDirFragments;
     private boolean mDragDropEnabled;
     private FragmentManager mFragmentManager;
+    private boolean mGoingBack;
+
     private int mMaxFragmentsSeen;
     private int mNumColumns;
-    private DirNode mRootNode;
 
+    private DirNode mRootNode;
     private boolean mSelectEnabled;
     protected FilePickerFragment mController;
 
     public DirPagerAdapter(FilePickerFragment fragment, FragmentManager fm) {
         mFragmentManager = fm;
         mController = fragment;
-//        mDirFragments = new ArrayList<DirFragment>();
+        mBackHistory = new Stack<DirNode>();
     }
-
+    
     /**
      * Add a new directory to the pager. It will be inserted in the appropriate
      * part of the directory hierarchy.
@@ -47,8 +52,23 @@ public class DirPagerAdapter extends PagerAdapter {
         if (mRootNode == null) {
             mRootNode = new DirNode(dir, this, mFragmentManager);
             notifyDataSetChanged();
-        } else if (mRootNode.addPath(dir)) {
-            notifyDataSetChanged();
+            mCurrentNode = mRootNode;
+        } else {
+            Pair<Boolean, DirNode> result = mRootNode.addPath(dir);
+            if (result.first) {
+                notifyDataSetChanged();
+            }
+
+            if (mCurrentNode == result.second) {
+                // Don't double add node to history. Required because view
+                // paging triggers a double call here.
+                return;
+            }
+
+            if (!mGoingBack) {
+                mBackHistory.push(mCurrentNode);
+            }
+            mCurrentNode = result.second;
         }
     }
 
@@ -82,11 +102,6 @@ public class DirPagerAdapter extends PagerAdapter {
         return mRootNode.mNumDescendants + 1;
     }
 
-    //
-    // public List<DirFragment> getFragments() {
-    // return mDirFragments;
-    // }
-
     public DirFragment getItem(int i) {
         if (mRootNode == null) {
             return null;
@@ -95,12 +110,36 @@ public class DirPagerAdapter extends PagerAdapter {
         return mRootNode.getNodeAtDepth(i).getFragment();
     }
 
+    public int getMaxFragmentsSeen() {
+        return mMaxFragmentsSeen;
+    }
+
+    public DirNode getNode(int position) {
+        return mRootNode.getNodeAtDepth(position);
+    }
+
     public int getNumColumns() {
         return mNumColumns;
     }
 
+    @Override
+    public CharSequence getPageTitle(int position) {
+        return getItem(position).getTitle();
+    }
+
     public DirNode getParcelableData() {
         return mRootNode;
+    }
+
+    public int goBack() {
+        if (mBackHistory.size() == 0) {
+            return -1;
+        }
+        mGoingBack = true;
+        DirNode node = mBackHistory.pop();
+        addDir(node.getFile());
+        mGoingBack = false;
+        return node.getDepth();
     }
 
     @Override
@@ -142,10 +181,8 @@ public class DirPagerAdapter extends PagerAdapter {
 
         for (int i = 0; i < mMaxFragmentsSeen; i++) {
             DirFragment f = (DirFragment)mFragmentManager.findFragmentByTag(makeFragmentName(
-                    R.id.container_directory, i));
+                    R.id.pager, i));
             f.addController(mController);
-            // Log.d("asdf", "rebuild item " + i + " " + mDirFragments.size());
-            // mDirFragments.add(f);
         }
 
         notifyDataSetChanged();
@@ -158,13 +195,10 @@ public class DirPagerAdapter extends PagerAdapter {
      */
     public void setColumnWidth(int width) {
         mColumnWidth = width;
-        // for (DirFragment fragment : getFragments()) {
-        // fragment.setColumnWidth(width);
-        // }
 
         for (int i = 0; i < mMaxFragmentsSeen; i++) {
             DirFragment f = (DirFragment)mFragmentManager.findFragmentByTag(makeFragmentName(
-                    R.id.container_directory, i));
+                    R.id.pager, i));
             f.setColumnWidth(width);
         }
     }
@@ -178,10 +212,6 @@ public class DirPagerAdapter extends PagerAdapter {
     public void setDragDropEnabled(boolean enabled) {
         mDragDropEnabled = enabled;
     }
-
-    // public void setFragments(List<DirFragment> dirFragments) {
-    // mDirFragments = dirFragments;
-    // }
 
     /**
      * set whether the file picker allows multiple files to be selected and
@@ -200,12 +230,10 @@ public class DirPagerAdapter extends PagerAdapter {
      */
     public void setNumColumns(int numColumns) {
         mNumColumns = numColumns;
-        // for (DirFragment fragment : getFragments()) {
-        // fragment.setNumColumns(numColumns);
-        // }
+
         for (int i = 0; i < mMaxFragmentsSeen; i++) {
             DirFragment f = (DirFragment)mFragmentManager.findFragmentByTag(makeFragmentName(
-                    R.id.container_directory, i));
+                    R.id.pager, i));
             f.setNumColumns(numColumns);
         }
     }
@@ -232,13 +260,16 @@ public class DirPagerAdapter extends PagerAdapter {
     public void setRootDir(File file) {
         mRootNode = new DirNode(file, this, mFragmentManager);
         notifyDataSetChanged();
+        mCurrentNode = mRootNode;
     }
-
+    
+    @Override
+    public void notifyDataSetChanged() {
+        super.notifyDataSetChanged();
+        mController.mIndicator.notifyDataSetChanged();
+    }
+    
     @Override
     public void startUpdate(View container) {
-    }
-
-    public int getMaxFragmentsSeen() {
-        return mMaxFragmentsSeen;
     }
 }

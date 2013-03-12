@@ -12,14 +12,14 @@
         android:paddingBottom="4dp"
         android:paddingLeft="4dp"
         android:paddingTop="4dp"
-        android:textColor="@color/header"
+        android:textColor="@color/fp__header"
         android:textSize="15sp"
         android:textStyle="bold" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/header" >
+        android:background="@color/fp__header" >
     </FrameLayout>
 
 </LinearLayout>

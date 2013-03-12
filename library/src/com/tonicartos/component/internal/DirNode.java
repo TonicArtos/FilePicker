@@ -6,6 +6,8 @@ import com.tonicartos.component.R;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.v4.app.FragmentManager;
+import android.text.TextUtils;
+import android.util.Pair;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -123,7 +125,7 @@ public class DirNode implements Parcelable {
      * @return Fragment held by this node.
      */
     public DirFragment getFragment() {
-        String name = DirPagerAdapter.makeFragmentName(R.id.container_directory, mNodeDepth);
+        String name = DirPagerAdapter.makeFragmentName(R.id.pager, mNodeDepth);
         DirFragment fragment = (DirFragment)mFragmentManager.findFragmentByTag(name);
 
         if (fragment == null) {
@@ -131,7 +133,7 @@ public class DirNode implements Parcelable {
             fragment = DirFragment.newInstance(mFile, mPagerAdapter.getNumColumns(),
                     mPagerAdapter.getColumnWidth(), mNodeDepth);
             fragment.addController(mPagerAdapter.mController);
-//            mPagerAdapter.getFragments().add(fragment);
+            // mPagerAdapter.getFragments().add(fragment);
         } else {
             fragment.update(mFile);
         }
@@ -198,7 +200,7 @@ public class DirNode implements Parcelable {
      * 
      * @return Node depth.
      */
-    private int getDepth() {
+    protected int getDepth() {
         return mNodeDepth;
     }
 
@@ -221,7 +223,7 @@ public class DirNode implements Parcelable {
      * @return True if the active data set has changed. False if no change (path
      *         was already in the selected history).
      */
-    protected boolean addPath(File file) {
+    public Pair<Boolean, DirNode> addPath(File file) {
         int depthDelta = file.getPath().split(File.separator).length - mFileDepth;
         if (depthDelta == 1) {
             for (int i = 0; i < mChildren.size(); i++) {
@@ -229,23 +231,25 @@ public class DirNode implements Parcelable {
                     if (i == 0) {
                         // Already in the currently selected history and we
                         // don't need to changes the data set.
-                        return DATA_SET_UNCHANGED;
+                        return new Pair<Boolean, DirNode>(DATA_SET_UNCHANGED, mChildren.get(i));
                     }
 
                     DirNode selected = mChildren.remove(i);
                     addChild(selected);
                     selected.addOrUpdateFragments();
-                    return DATA_SET_CHANGED;
+                    return new Pair<Boolean, DirNode>(DATA_SET_CHANGED, selected);
                 }
             }
             DirNode newChild = new DirNode(this, file, mPagerAdapter, mFragmentManager);
             addChild(newChild);
             newChild.addOrUpdateFragments();
-            return DATA_SET_CHANGED;
+            return new Pair<Boolean, DirNode>(DATA_SET_CHANGED, newChild);
         } else if (depthDelta > 1) {
             // Assume that only the active history will have paths added so
             // pass on down to the zeroth child.
             return mChildren.get(0).addPath(file);
+        } else if (TextUtils.equals(mFile.getPath(), file.getPath())) {
+            return new Pair<Boolean, DirNode>(DATA_SET_UNCHANGED, this);
         } else if (mParent == null) {
             throw new RuntimeException("Illegal attempt to add " + file.getPath()
                     + " to parent node where no parent exists.");
@@ -260,7 +264,7 @@ public class DirNode implements Parcelable {
      * @param i Depth to select node at.
      * @return Node at requested depth.
      */
-    protected DirNode getNodeAtDepth(int i) {
+    public DirNode getNodeAtDepth(int i) {
         if (i == mNodeDepth) {
             return this;
         } else if (i < mNodeDepth) {
@@ -289,5 +293,9 @@ public class DirNode implements Parcelable {
         for (DirNode dn : mChildren) {
             dn.setFragmentManager(fragmentManager);
         }
+    }
+
+    public File getFile() {
+        return mFile;
     }
 }

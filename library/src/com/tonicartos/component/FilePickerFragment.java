@@ -4,11 +4,12 @@ package com.tonicartos.component;
 import com.actionbarsherlock.app.SherlockFragment;
 import com.tonicartos.component.internal.DirNode;
 import com.tonicartos.component.internal.DirPagerAdapter;
+import com.viewpagerindicator.TabPageIndicator;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
-import android.util.Log;
+import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +17,7 @@ import android.view.ViewGroup;
 import java.io.File;
 import java.io.FilenameFilter;
 
-public class FilePickerFragment extends SherlockFragment {
+public class FilePickerFragment extends SherlockFragment implements OnPageChangeListener {
     public static final String ARG_DRAGDROP = "arg_dragdrop";
     public static final String ARG_MULTI_SELECT = "arg_multiselect";
     public static final String ARG_COLUMN_WIDTH = "arg_column_width";
@@ -30,6 +31,7 @@ public class FilePickerFragment extends SherlockFragment {
     private Callbacks mCallbacks;
     private ViewPager mDirPager;
     private DirPagerAdapter mDirPagerAdapter;
+    public TabPageIndicator mIndicator;
 
     @Override
     public void onAttach(Activity activity) {
@@ -40,12 +42,12 @@ public class FilePickerFragment extends SherlockFragment {
         }
         mCallbacks = (Callbacks)activity;
     }
-
+    
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Bundle args = getArguments();
-        
+
         mDirPagerAdapter = new DirPagerAdapter(this, getChildFragmentManager());
 
         if (args == null) {
@@ -67,14 +69,19 @@ public class FilePickerFragment extends SherlockFragment {
                 setRootPath(args.getString(ARG_ROOT_PATH));
             }
         }
-        
+
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_filepager, container, false);
-        mDirPager = (ViewPager)v.findViewById(R.id.container_directory);
+        mDirPager = (ViewPager)v.findViewById(R.id.pager);
         mDirPager.setAdapter(mDirPagerAdapter);
+
+        mIndicator = (TabPageIndicator)v.findViewById(R.id.indicator);
+        mIndicator.setViewPager(mDirPager);
+        mIndicator.setOnPageChangeListener(this);
+        
         return v;
     }
 
@@ -85,7 +92,6 @@ public class FilePickerFragment extends SherlockFragment {
             int numFragments = savedInstanceState.getInt(ARG_NUM_FRAGMENTS);
             mDirPagerAdapter.loadSavedData(pagerData, numFragments);
             mDirPager.setCurrentItem(savedInstanceState.getInt(ARG_CURRENT_PAGE));
-            Log.d("asdf", "" + mDirPagerAdapter.getItem(mDirPagerAdapter.getCount() - 1).getTitle());
         }
     }
 
@@ -121,6 +127,23 @@ public class FilePickerFragment extends SherlockFragment {
         setRootDir(new File(path));
     }
 
+    /**
+     * Go back in the file picker history.
+     * 
+     * @return True if the back action was consumed. If False the caller should
+     *         handle the back action.
+     */
+    public boolean goBack() {
+        int position = mDirPagerAdapter.goBack();
+        if (position < 0) {
+            return false;
+        }
+
+        // Update view pager.
+        mDirPager.setCurrentItem(position);
+        return true;
+    }
+
     public interface Callbacks {
         /**
          * Get a filename filter for the filepicker. If returned filter is null
@@ -149,5 +172,18 @@ public class FilePickerFragment extends SherlockFragment {
     public void addDir(File file) {
         mDirPagerAdapter.addDir(file);
         mDirPager.setCurrentItem(mDirPager.getCurrentItem() + 1);
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int arg0) {
+    }
+
+    @Override
+    public void onPageScrolled(int arg0, float arg1, int arg2) {
+    }
+
+    @Override
+    public void onPageSelected(int position) {
+        mDirPagerAdapter.addDir(mDirPagerAdapter.getNode(position).getFile());
     }
 }
