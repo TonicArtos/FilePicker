@@ -1,12 +1,15 @@
 
 package com.tonicartos.component.internal;
 
+import com.actionbarsherlock.app.SherlockFragmentActivity;
+import com.tonicartos.component.FilePickerFragment.HeaderMapper;
 import com.tonicartos.component.R;
 import com.tonicartos.widget.stickygridheaders.StickyGridHeadersBaseAdapter;
+import com.tonicartos.widget.stickygridheaders.StickyGridHeadersGridView;
 
 import android.annotation.SuppressLint;
+import android.os.AsyncTask;
 import android.os.FileObserver;
-import android.support.v4.app.FragmentActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,31 +44,40 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
     /**
      * So the file observer events can update on the UI thread.
      */
-    private FragmentActivity mContext;
+    private SherlockFragmentActivity mContext;
     private File mDir;
     private FileComparator mFileComparator = new FileComparator();
-    private DirObserver mFileObserverExtension;
+    private DirObserver mFileObserver;
     private FilenameFilter mFilter;
     private Map<String, HeaderData> mHeaderMap;
     private List<HeaderData> mHeaders;
     private LayoutInflater mInflater;
+    private HeaderMapper mHeaderMapper;
+    private View mContainer;
 
-    public FileSystemAdapter(FragmentActivity context, File file) {
-        this(context, file, sDefaultFilter, false);
+    public FileSystemAdapter(SherlockFragmentActivity context, File file,
+            HeaderMapper headerMapper, View container) {
+        this(context, file, headerMapper, container, sDefaultFilter, false);
     }
 
-    public FileSystemAdapter(FragmentActivity context, File file, boolean caseInsensitive) {
-        this(context, file, sDefaultFilter, caseInsensitive);
+    public FileSystemAdapter(SherlockFragmentActivity context, File file,
+            HeaderMapper headerMapper, View container, boolean caseInsensitive) {
+        this(context, file, headerMapper, container, sDefaultFilter, caseInsensitive);
     }
 
-    public FileSystemAdapter(FragmentActivity context, File file, FilenameFilter filter) {
-        this(context, file, filter, false);
+    public FileSystemAdapter(SherlockFragmentActivity context, File file,
+            HeaderMapper headerMapper, View container, FilenameFilter filter) {
+        this(context, file, headerMapper, container, filter, false);
     }
 
-    public FileSystemAdapter(FragmentActivity context, File file, FilenameFilter filter,
+    public FileSystemAdapter(SherlockFragmentActivity context, File file,
+            HeaderMapper headerMapper, View container, final FilenameFilter filter,
             boolean caseInsensitive) {
-        super(context, android.R.layout.simple_list_item_1, android.R.id.text1,
-                new ArrayList<String>(Arrays.asList(file.list(filter))));
+        super(context, android.R.layout.simple_list_item_1, android.R.id.text1);
+
+        mHeaderMapper = headerMapper;
+
+        mContainer = container;
 
         mDir = file;
         mFilter = filter;
@@ -75,16 +87,45 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
         mCaseInsensitive = caseInsensitive;
         mHeaders = new ArrayList<HeaderData>();
 
-        mFileObserverExtension = new DirObserver(file.getPath());
-        mFileObserverExtension.startWatching();
+        mFileObserver = new DirObserver(mDir.getPath());
+        mFileObserver.startWatching();
 
-        sort(mFileComparator);
-        buildHeaders();
+        new AsyncTask<File, Void, ArrayList<String>>() {
+            @Override
+            protected ArrayList<String> doInBackground(File... files) {
+                String[] fs = files[0].list(filter);
+                // Do the initial sort in a background thread.
+                Arrays.sort(fs, mFileComparator);
+                return new ArrayList<String>(Arrays.asList(fs));
+            }
+
+            @Override
+            protected void onPreExecute() {
+                mContext.setSupportProgressBarIndeterminateVisibility(true);
+            };
+
+            @Override
+            protected void onPostExecute(ArrayList<String> result) {
+                if (result.size() == 0) {
+                    View emptyText = mContainer.findViewById(android.R.id.empty);
+                    emptyText.setVisibility(View.VISIBLE);
+                    ((StickyGridHeadersGridView)mContainer.findViewById(R.id.list_files))
+                            .setEmptyView(emptyText);
+                }
+                mContext.setSupportProgressBarIndeterminateVisibility(false);
+                FileSystemAdapter.this.addAll(result);
+                buildHeaders();
+            }
+        }.execute(file);
     }
 
     @Override
     public int getCountForHeader(int header) {
         return mHeaders.get(header).count;
+    }
+
+    public File getFile(int position) {
+        return new File(mDir, getItem(position));
     }
 
     @Override
@@ -172,14 +213,17 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
      */
     protected String getFileSectionHeader(File file) {
         if (file.isDirectory()) {
-            return "Folder";
+            return "Folders";
         }
-        String header = ExtensionMapper.getHeader(file);
-        if (header == null) {
-            header = "Unknown";
+        String mime = ExtensionMapper.getHeader(file);
+        if (mime == null) {
+            mime = "Unknown";
         }
 
-        return header;
+        if (mHeaderMapper == null) {
+            return mime;
+        }
+        return mHeaderMapper.getHeaderFor(mime);
     }
 
     /**
@@ -193,6 +237,9 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
         if (hd == null) {
             hd = new HeaderData();
             hd.header = ext;
+            mHeaderMap.put(ext, hd);
+
+            // Insert header in correct place.
             boolean added = false;
             for (int i = 0; i < mHeaders.size(); i++) {
                 if (compareCis(ext, mHeaders.get(i).header) < 0) {
@@ -214,11 +261,15 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
      */
     private final class DirObserver extends FileObserver {
         private DirObserver(String path) {
-            super(path, CREATE | DELETE);
+            super(path, CREATE | DELETE | MOVED_TO | MOVED_FROM);
         }
 
         @Override
         public void onEvent(final int event, final String path) {
+            if (event == 0x8000) {
+                return;
+            }
+
             if (!mFilter.accept(mDir, path)) {
                 return;
             }
@@ -226,12 +277,14 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
                 @Override
                 public void run() {
                     switch (event & ALL_EVENTS) {
+                        case MOVED_TO:
                         case CREATE:
                             incrementHeader(getFileSectionHeader(new File(mDir, path)));
                             add(path); // Notifies data set changed.
                             sort(mFileComparator);
 
                             break;
+                        case MOVED_FROM:
                         case DELETE:
                             decrementHeader(getFileSectionHeader(new File(mDir, path)));
                             remove(path); // Notifies data set changed.
@@ -289,5 +342,9 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
      */
     private final class ViewHolder {
         public TextView textView;
+    }
+
+    public void stopWatching() {
+        mFileObserver.stopWatching();
     }
 }
