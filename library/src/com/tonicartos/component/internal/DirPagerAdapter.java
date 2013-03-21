@@ -13,21 +13,18 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import java.io.File;
-import java.util.Stack;
 
 public class DirPagerAdapter extends PagerAdapter {
     protected static String makeFragmentName(int viewId, int index) {
         return "android:switcher:" + viewId + ":" + index;
     }
 
-    private Stack<DirNode> mBackHistory;
     private int mColumnWidth;
     private DirNode mCurrentNode;
     private Fragment mCurrentPrimaryItem;
     private FragmentTransaction mCurTransaction = null;
     private boolean mDragDropEnabled;
     private FragmentManager mFragmentManager;
-    private boolean mGoingBack;
 
     private int mMaxFragmentsSeen;
     private int mNumColumns;
@@ -40,7 +37,6 @@ public class DirPagerAdapter extends PagerAdapter {
     public DirPagerAdapter(FilePickerFragment fragment, FragmentManager fm, String rootTabName) {
         mFragmentManager = fm;
         mController = fragment;
-        mBackHistory = new Stack<DirNode>();
         mRootTabName = rootTabName;
     }
 
@@ -67,9 +63,6 @@ public class DirPagerAdapter extends PagerAdapter {
                 return;
             }
 
-            if (!mGoingBack) {
-                mBackHistory.push(mCurrentNode);
-            }
             mCurrentNode = result.second;
         }
     }
@@ -134,17 +127,6 @@ public class DirPagerAdapter extends PagerAdapter {
 
     public DirNode getParcelableData() {
         return mRootNode;
-    }
-
-    public int goBack() {
-        if (mBackHistory.size() == 0) {
-            return -1;
-        }
-        mGoingBack = true;
-        DirNode node = mBackHistory.pop();
-        addDir(node.getFile());
-        mGoingBack = false;
-        return node.getDepth();
     }
 
     @Override
