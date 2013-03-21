@@ -1,7 +1,0 @@
-<resources>
-
-    <string name="fp__app_name">FilePicker</string>
-
-    <string name="fp__label_empty">Folder is empty</string>
-
-</resources>

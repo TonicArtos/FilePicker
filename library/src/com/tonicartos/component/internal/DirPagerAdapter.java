@@ -35,13 +35,15 @@ public class DirPagerAdapter extends PagerAdapter {
     private DirNode mRootNode;
     private boolean mSelectEnabled;
     protected FilePickerFragment mController;
+    private String mRootTabName = "Disk";
 
-    public DirPagerAdapter(FilePickerFragment fragment, FragmentManager fm) {
+    public DirPagerAdapter(FilePickerFragment fragment, FragmentManager fm, String rootTabName) {
         mFragmentManager = fm;
         mController = fragment;
         mBackHistory = new Stack<DirNode>();
+        mRootTabName = rootTabName;
     }
-    
+
     /**
      * Add a new directory to the pager. It will be inserted in the appropriate
      * part of the directory hierarchy.
@@ -124,6 +126,9 @@ public class DirPagerAdapter extends PagerAdapter {
 
     @Override
     public CharSequence getPageTitle(int position) {
+        if (position == 0) {
+            return mRootTabName;
+        }
         return getItem(position).getTitle();
     }
 
@@ -262,14 +267,14 @@ public class DirPagerAdapter extends PagerAdapter {
         notifyDataSetChanged();
         mCurrentNode = mRootNode;
     }
-    
+
     @Override
     public void notifyDataSetChanged() {
         super.notifyDataSetChanged();
         mController.mIndicator.notifyDataSetChanged();
     }
-    
-    @Override
-    public void startUpdate(View container) {
+
+    public void setRootTabName(String rootTabName) {
+        mRootTabName = rootTabName;
     }
 }

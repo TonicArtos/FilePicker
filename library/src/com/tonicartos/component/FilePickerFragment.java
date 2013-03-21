@@ -4,7 +4,7 @@ package com.tonicartos.component;
 import com.actionbarsherlock.app.SherlockFragment;
 import com.tonicartos.component.internal.DirNode;
 import com.tonicartos.component.internal.DirPagerAdapter;
-import com.viewpagerindicator.TabPageIndicator;
+import com.tonicartos.component.internal.TabPageIndicator;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -27,6 +27,7 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
     private static final String ARG_PAGER_ADAPTER_DATA = "arg_pager_adapter_data";
     private static final String ARG_NUM_FRAGMENTS = "arg_num_fragments";
     private static final String ARG_CURRENT_PAGE = "arg_current_page";
+    private static final String ARG_ROOT_TAB_NAME = "arg_root_tab_name";
 
     private Callbacks mCallbacks;
     private ViewPager mDirPager;
@@ -42,17 +43,19 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
         }
         mCallbacks = (Callbacks)activity;
     }
-    
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Bundle args = getArguments();
 
-        mDirPagerAdapter = new DirPagerAdapter(this, getChildFragmentManager());
-
+        mDirPagerAdapter = new DirPagerAdapter(this, getChildFragmentManager(),
+                getSherlockActivity().getString(R.string.root_tab_name));
         if (args == null) {
             return;
         }
+
+        mDirPagerAdapter.setRootTabName(args.getString(ARG_ROOT_TAB_NAME));
 
         setDragDropEnabled(args.getBoolean(ARG_DRAGDROP, false));
         setMultiSelectEnabled(args.getBoolean(ARG_MULTI_SELECT, false));
@@ -81,7 +84,7 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
         mIndicator = (TabPageIndicator)v.findViewById(R.id.indicator);
         mIndicator.setViewPager(mDirPager);
         mIndicator.setOnPageChangeListener(this);
-        
+
         return v;
     }
 
@@ -134,13 +137,18 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
      *         handle the back action.
      */
     public boolean goBack() {
-        int position = mDirPagerAdapter.goBack();
-        if (position < 0) {
+//        int position = mDirPagerAdapter.goBack();
+//        if (position < 0) {
+//            return false;
+//        }
+//
+//        // Update view pager.
+//        mDirPager.setCurrentItem(position);
+        int position = mDirPager.getCurrentItem();
+        if (position == 0) {
             return false;
         }
-
-        // Update view pager.
-        mDirPager.setCurrentItem(position);
+        mDirPager.setCurrentItem(position - 1);
         return true;
     }
 
