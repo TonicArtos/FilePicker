@@ -5,7 +5,6 @@ import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.tonicartos.component.FilePickerFragment.HeaderMapper;
 import com.tonicartos.component.R;
 import com.tonicartos.widget.stickygridheaders.StickyGridHeadersBaseAdapter;
-import com.tonicartos.widget.stickygridheaders.StickyGridHeadersGridView;
 
 import android.annotation.SuppressLint;
 import android.os.AsyncTask;
@@ -13,6 +12,7 @@ import android.os.FileObserver;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
@@ -55,6 +55,10 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
     private HeaderMapper mHeaderMapper;
     private View mContainer;
 
+    private View mLoadingView;
+
+    private View mEmptyView;
+
     public FileSystemAdapter(SherlockFragmentActivity context, File file,
             HeaderMapper headerMapper, View container) {
         this(context, file, headerMapper, container, sDefaultFilter, false);
@@ -89,6 +93,10 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
 
         mFileObserver = new DirObserver(mDir.getPath());
         mFileObserver.startWatching();
+        mLoadingView = mContainer.findViewById(R.id.loading);
+        mEmptyView = mContainer.findViewById(R.id.empty);
+        ((AbsListView)mContainer.findViewById(R.id.list_files)).setEmptyView(mContainer
+                .findViewById(android.R.id.empty));
 
         new AsyncTask<File, Void, ArrayList<String>>() {
             @Override
@@ -100,21 +108,19 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
             }
 
             @Override
-            protected void onPreExecute() {
-                mContext.setSupportProgressBarIndeterminateVisibility(true);
+            protected void onPostExecute(ArrayList<String> result) {
+                if (result.size() == 0) {
+                    mEmptyView.setVisibility(View.VISIBLE);
+                    mLoadingView.setVisibility(View.GONE);
+                }
+                FileSystemAdapter.this.addAll(result);
+                buildHeaders();
             };
 
             @Override
-            protected void onPostExecute(ArrayList<String> result) {
-                if (result.size() == 0) {
-                    View emptyText = mContainer.findViewById(android.R.id.empty);
-                    emptyText.setVisibility(View.VISIBLE);
-                    ((StickyGridHeadersGridView)mContainer.findViewById(R.id.list_files))
-                            .setEmptyView(emptyText);
-                }
-                mContext.setSupportProgressBarIndeterminateVisibility(false);
-                FileSystemAdapter.this.addAll(result);
-                buildHeaders();
+            protected void onPreExecute() {
+                mEmptyView.setVisibility(View.GONE);
+                mLoadingView.setVisibility(View.VISIBLE);
             }
         }.execute(file);
     }
@@ -149,6 +155,10 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
     @Override
     public int getNumHeaders() {
         return mHeaders.size();
+    }
+
+    public void stopWatching() {
+        mFileObserver.stopWatching();
     }
 
     /**
@@ -342,9 +352,5 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
      */
     private final class ViewHolder {
         public TextView textView;
-    }
-
-    public void stopWatching() {
-        mFileObserver.stopWatching();
     }
 }

@@ -4,6 +4,7 @@ package com.tonicartos.component.internal;
 import com.tonicartos.component.FilePickerFragment;
 import com.tonicartos.component.R;
 
+import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -15,22 +16,31 @@ import android.view.ViewGroup;
 import java.io.File;
 
 public class DirPagerAdapter extends PagerAdapter {
+    private static final String ARG_NUM_FRAGMENTS = "arg_num_fragments";
+    private static final String ARG_DIR_DATA = "arg_dir_data";
+    private static final String ARG_NUM_COLUMNS = "arg_num_columns";
+    private static final String ARG_COLUMN_WIDTH = "arg_column_width";
+
     protected static String makeFragmentName(int viewId, int index) {
         return "android:switcher:" + viewId + ":" + index;
     }
 
-    private int mColumnWidth;
     private DirNode mCurrentNode;
+    private DirNode mRootNode;
+
     private Fragment mCurrentPrimaryItem;
     private FragmentTransaction mCurTransaction = null;
+
     private boolean mDragDropEnabled;
+    private boolean mSelectEnabled;
+
     private FragmentManager mFragmentManager;
 
     private int mMaxFragmentsSeen;
+
+    private int mColumnWidth;
     private int mNumColumns;
 
-    private DirNode mRootNode;
-    private boolean mSelectEnabled;
     protected FilePickerFragment mController;
     private String mRootTabName = "Disk";
 
@@ -105,10 +115,6 @@ public class DirPagerAdapter extends PagerAdapter {
         return mRootNode.getNodeAtDepth(i).getFragment();
     }
 
-    public int getMaxFragmentsSeen() {
-        return mMaxFragmentsSeen;
-    }
-
     public DirNode getNode(int position) {
         return mRootNode.getNodeAtDepth(position);
     }
@@ -125,8 +131,13 @@ public class DirPagerAdapter extends PagerAdapter {
         return getItem(position).getTitle();
     }
 
-    public DirNode getParcelableData() {
-        return mRootNode;
+    public Bundle getState() {
+        Bundle out = new Bundle();
+        out.putParcelable(ARG_DIR_DATA, mRootNode);
+        out.putInt(ARG_NUM_FRAGMENTS, mMaxFragmentsSeen);
+        out.putInt(ARG_NUM_COLUMNS, mNumColumns);
+        out.putInt(ARG_COLUMN_WIDTH, mColumnWidth);
+        return out;
     }
 
     @Override
@@ -160,11 +171,12 @@ public class DirPagerAdapter extends PagerAdapter {
         return ((Fragment)object).getView() == view;
     }
 
-    public void loadSavedData(DirNode data, int numFragments) {
-        mRootNode = data;
+    public void loadState(Bundle in) {
+        mRootNode = in.getParcelable(ARG_DIR_DATA);
         mRootNode.setPagerAdapter(this);
         mRootNode.setFragmentManager(mFragmentManager);
-        mMaxFragmentsSeen = numFragments;
+
+        mMaxFragmentsSeen = in.getInt(ARG_NUM_FRAGMENTS);
 
         for (int i = 0; i < mMaxFragmentsSeen; i++) {
             DirFragment f = (DirFragment)mFragmentManager.findFragmentByTag(makeFragmentName(
@@ -172,7 +184,16 @@ public class DirPagerAdapter extends PagerAdapter {
             f.addController(mController);
         }
 
+        mNumColumns = in.getInt(ARG_NUM_COLUMNS);
+        mColumnWidth = in.getInt(ARG_COLUMN_WIDTH);
+
         notifyDataSetChanged();
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        super.notifyDataSetChanged();
+        mController.mIndicator.notifyDataSetChanged();
     }
 
     /**
@@ -248,12 +269,6 @@ public class DirPagerAdapter extends PagerAdapter {
         mRootNode = new DirNode(file, this, mFragmentManager);
         notifyDataSetChanged();
         mCurrentNode = mRootNode;
-    }
-
-    @Override
-    public void notifyDataSetChanged() {
-        super.notifyDataSetChanged();
-        mController.mIndicator.notifyDataSetChanged();
     }
 
     public void setRootTabName(String rootTabName) {

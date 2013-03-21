@@ -2,7 +2,6 @@
 package com.tonicartos.component;
 
 import com.actionbarsherlock.app.SherlockFragment;
-import com.tonicartos.component.internal.DirNode;
 import com.tonicartos.component.internal.DirPagerAdapter;
 import com.tonicartos.component.internal.TabPageIndicator;
 
@@ -24,15 +23,34 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
     public static final String ARG_NUM_COLUMNS = "arg_num_columns";
     public static final String ARG_ROOT_PATH = "arg_root_path";
     public static final String ARG_ROOT_DIR = "arg_root_dir";
-    private static final String ARG_PAGER_ADAPTER_DATA = "arg_pager_adapter_data";
-    private static final String ARG_NUM_FRAGMENTS = "arg_num_fragments";
+    
     private static final String ARG_CURRENT_PAGE = "arg_current_page";
     private static final String ARG_ROOT_TAB_NAME = "arg_root_tab_name";
+    private static final String ARG_DIR_ADAPTER_STATE = "arg_dir_adapter_state";
 
-    private Callbacks mCallbacks;
     private ViewPager mDirPager;
     private DirPagerAdapter mDirPagerAdapter;
     public TabPageIndicator mIndicator;
+
+    public void addDir(File file) {
+        mDirPagerAdapter.addDir(file);
+        mDirPager.setCurrentItem(mDirPager.getCurrentItem() + 1);
+    }
+
+    /**
+     * Go back in the file picker history.
+     * 
+     * @return True if the back action was consumed. If False the caller should
+     *         handle the back action.
+     */
+    public boolean goBack() {
+        int position = mDirPager.getCurrentItem();
+        if (position == 0) {
+            return false;
+        }
+        mDirPager.setCurrentItem(position - 1);
+        return true;
+    }
 
     @Override
     public void onAttach(Activity activity) {
@@ -41,7 +59,6 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
         if (!(activity instanceof Callbacks)) {
             throw new IllegalStateException("Activity must implement callbacks.");
         }
-        mCallbacks = (Callbacks)activity;
     }
 
     @Override
@@ -89,21 +106,31 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
     }
 
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            DirNode pagerData = savedInstanceState.getParcelable(ARG_PAGER_ADAPTER_DATA);
-            int numFragments = savedInstanceState.getInt(ARG_NUM_FRAGMENTS);
-            mDirPagerAdapter.loadSavedData(pagerData, numFragments);
-            mDirPager.setCurrentItem(savedInstanceState.getInt(ARG_CURRENT_PAGE));
-        }
+    public void onPageScrolled(int arg0, float arg1, int arg2) {
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int arg0) {
+    }
+
+    @Override
+    public void onPageSelected(int position) {
+        mDirPagerAdapter.addDir(mDirPagerAdapter.getNode(position).getFile());
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putParcelable(ARG_PAGER_ADAPTER_DATA, mDirPagerAdapter.getParcelableData());
-        outState.putInt(ARG_NUM_FRAGMENTS, mDirPagerAdapter.getMaxFragmentsSeen());
+        outState.putBundle(ARG_DIR_ADAPTER_STATE, mDirPagerAdapter.getState());
         outState.putInt(ARG_CURRENT_PAGE, mDirPager.getCurrentItem());
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            mDirPagerAdapter.loadState(savedInstanceState.getBundle(ARG_DIR_ADAPTER_STATE));
+            mDirPager.setCurrentItem(savedInstanceState.getInt(ARG_CURRENT_PAGE));
+        }
     }
 
     public void setColumnWidth(int width) {
@@ -130,28 +157,6 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
         setRootDir(new File(path));
     }
 
-    /**
-     * Go back in the file picker history.
-     * 
-     * @return True if the back action was consumed. If False the caller should
-     *         handle the back action.
-     */
-    public boolean goBack() {
-//        int position = mDirPagerAdapter.goBack();
-//        if (position < 0) {
-//            return false;
-//        }
-//
-//        // Update view pager.
-//        mDirPager.setCurrentItem(position);
-        int position = mDirPager.getCurrentItem();
-        if (position == 0) {
-            return false;
-        }
-        mDirPager.setCurrentItem(position - 1);
-        return true;
-    }
-
     public interface Callbacks {
         /**
          * Get a filename filter for the filepicker. If returned filter is null
@@ -175,23 +180,5 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
 
     public interface HeaderMapper {
         String getHeaderFor(String mimeType);
-    }
-
-    public void addDir(File file) {
-        mDirPagerAdapter.addDir(file);
-        mDirPager.setCurrentItem(mDirPager.getCurrentItem() + 1);
-    }
-
-    @Override
-    public void onPageScrollStateChanged(int arg0) {
-    }
-
-    @Override
-    public void onPageScrolled(int arg0, float arg1, int arg2) {
-    }
-
-    @Override
-    public void onPageSelected(int position) {
-        mDirPagerAdapter.addDir(mDirPagerAdapter.getNode(position).getFile());
     }
 }
