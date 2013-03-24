@@ -1,8 +1,24 @@
 # FilePicker
-
 A file picker for Android with a responsive UI that can be embedded in your app
 in a number of different ways.
 
+## Roadmap
+### 0.2
+- Multi-file picking
+
+### 0.3
+- Drag and drop.
+
+### 0.5
+- Styleable file and folder views.
+- Optional file and folder icons.
+- Two view layouts; text below or right of icon.
+
+### 0.7
+- Support custom views and binders for file and folder display.
+
+### 1.0
+- A dark and a light holo theme that can be applied, or extended.
 
 ## License
 ```
