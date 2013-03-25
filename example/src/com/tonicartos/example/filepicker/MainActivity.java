@@ -41,7 +41,6 @@ public class MainActivity extends SherlockFragmentActivity implements FilePicker
             mFilePickerFragment.setNumColumns(StickyGridHeadersGridView.AUTO_FIT);
             mFilePickerFragment.setMultiSelectEnabled(true);
         }
-        getResources().getString(R.string.header_documents);
     }
 
     @Override
