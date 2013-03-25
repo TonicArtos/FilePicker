@@ -233,7 +233,7 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
         if (mHeaderMapper == null) {
             return mime;
         }
-        return mHeaderMapper.getHeaderFor(mime);
+        return mHeaderMapper.getHeaderFor(mime, file);
     }
 
     /**

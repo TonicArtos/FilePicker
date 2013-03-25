@@ -179,6 +179,6 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
     }
 
     public interface HeaderMapper {
-        String getHeaderFor(String mimeType);
+        String getHeaderFor(String mimeType, File file);
     }
 }

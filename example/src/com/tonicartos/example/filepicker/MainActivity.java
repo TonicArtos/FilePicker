@@ -53,7 +53,7 @@ public class MainActivity extends SherlockFragmentActivity implements FilePicker
             private Pattern mImagePattern = Pattern.compile("image/.*");
 
             @Override
-            public String getHeaderFor(String mimeType) {
+            public String getHeaderFor(String mimeType, File file) {
                 Matcher matcher = mAudioPattern.matcher(mimeType);
                 if (matcher.matches()) {
                     return getResources().getString(R.string.header_audio);
