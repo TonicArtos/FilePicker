@@ -34,11 +34,11 @@
 <!--                 android:textAppearance="?android:attr/textAppearanceMedium" /> -->
 
             <ProgressBar
-                style="@style/GenericProgressIndicator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
                 android:padding="8dip" />
+<!--                 style="@style/GenericProgressIndicator" -->
         </RelativeLayout>
 
         <TextView

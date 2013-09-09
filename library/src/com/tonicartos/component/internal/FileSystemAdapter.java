@@ -1,14 +1,14 @@
 
 package com.tonicartos.component.internal;
 
-import com.actionbarsherlock.app.SherlockFragmentActivity;
-import com.tonicartos.component.FilePickerFragment.HeaderMapper;
 import com.tonicartos.component.R;
+import com.tonicartos.component.FilePickerFragment.HeaderMapper;
 import com.tonicartos.widget.stickygridheaders.StickyGridHeadersBaseAdapter;
 
 import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.FileObserver;
+import android.support.v4.app.FragmentActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -44,7 +44,7 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
     /**
      * So the file observer events can update on the UI thread.
      */
-    private SherlockFragmentActivity mContext;
+    private FragmentActivity mContext;
     private File mDir;
     private FileComparator mFileComparator = new FileComparator();
     private DirObserver mFileObserver;
@@ -59,22 +59,22 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
 
     private View mEmptyView;
 
-    public FileSystemAdapter(SherlockFragmentActivity context, File file,
+    public FileSystemAdapter(FragmentActivity context, File file,
             HeaderMapper headerMapper, View container) {
         this(context, file, headerMapper, container, sDefaultFilter, false);
     }
 
-    public FileSystemAdapter(SherlockFragmentActivity context, File file,
+    public FileSystemAdapter(FragmentActivity context, File file,
             HeaderMapper headerMapper, View container, boolean caseInsensitive) {
         this(context, file, headerMapper, container, sDefaultFilter, caseInsensitive);
     }
 
-    public FileSystemAdapter(SherlockFragmentActivity context, File file,
+    public FileSystemAdapter(FragmentActivity context, File file,
             HeaderMapper headerMapper, View container, FilenameFilter filter) {
         this(context, file, headerMapper, container, filter, false);
     }
 
-    public FileSystemAdapter(SherlockFragmentActivity context, File file,
+    public FileSystemAdapter(FragmentActivity context, File file,
             HeaderMapper headerMapper, View container, final FilenameFilter filter,
             boolean caseInsensitive) {
         super(context, android.R.layout.simple_list_item_1, android.R.id.text1);

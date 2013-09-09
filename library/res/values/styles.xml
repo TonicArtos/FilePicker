@@ -53,10 +53,10 @@
         <item name="android:gravity">center</item>
     </style>
 
-    <style name="GenericProgressIndicator" parent="@style/Widget.Sherlock.Light.ProgressBar">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:indeterminate">true</item>
-    </style>
+<!--     <style name="GenericProgressIndicator" parent="@style/Widget.Sherlock.Light.ProgressBar"> -->
+<!--         <item name="android:layout_width">wrap_content</item> -->
+<!--         <item name="android:layout_height">wrap_content</item> -->
+<!--         <item name="android:indeterminate">true</item> -->
+<!--     </style> -->
 
 </resources>

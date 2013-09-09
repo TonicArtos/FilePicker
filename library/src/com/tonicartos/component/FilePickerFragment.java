@@ -1,12 +1,12 @@
 
 package com.tonicartos.component;
 
-import com.actionbarsherlock.app.SherlockFragment;
+import com.astuetz.viewpager.extensions.PagerSlidingTabStrip;
 import com.tonicartos.component.internal.DirPagerAdapter;
-import com.tonicartos.component.internal.TabPageIndicator;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.view.LayoutInflater;
@@ -16,7 +16,7 @@ import android.view.ViewGroup;
 import java.io.File;
 import java.io.FilenameFilter;
 
-public class FilePickerFragment extends SherlockFragment implements OnPageChangeListener {
+public class FilePickerFragment extends Fragment implements OnPageChangeListener {
     public static final String ARG_DRAGDROP = "arg_dragdrop";
     public static final String ARG_MULTI_SELECT = "arg_multiselect";
     public static final String ARG_COLUMN_WIDTH = "arg_column_width";
@@ -30,7 +30,7 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
 
     private ViewPager mDirPager;
     private DirPagerAdapter mDirPagerAdapter;
-    public TabPageIndicator mIndicator;
+    public PagerSlidingTabStrip mIndicator;
 
     public void addDir(File file) {
         mDirPagerAdapter.addDir(file);
@@ -67,7 +67,7 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
         Bundle args = getArguments();
 
         mDirPagerAdapter = new DirPagerAdapter(this, getChildFragmentManager(),
-                getSherlockActivity().getString(R.string.root_tab_name));
+                getActivity().getString(R.string.root_tab_name));
         if (args == null) {
             return;
         }
@@ -98,7 +98,7 @@ public class FilePickerFragment extends SherlockFragment implements OnPageChange
         mDirPager = (ViewPager)v.findViewById(R.id.pager);
         mDirPager.setAdapter(mDirPagerAdapter);
 
-        mIndicator = (TabPageIndicator)v.findViewById(R.id.indicator);
+        mIndicator = (PagerSlidingTabStrip)v.findViewById(R.id.indicator);
         mIndicator.setViewPager(mDirPager);
         mIndicator.setOnPageChangeListener(this);
 

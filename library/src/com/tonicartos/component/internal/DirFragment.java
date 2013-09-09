@@ -1,14 +1,14 @@
 
 package com.tonicartos.component.internal;
 
-import com.actionbarsherlock.app.SherlockFragment;
 import com.tonicartos.component.FilePickerFragment;
+import com.tonicartos.component.R;
 import com.tonicartos.component.FilePickerFragment.Callbacks;
 import com.tonicartos.component.FilePickerFragment.HeaderMapper;
-import com.tonicartos.component.R;
 import com.tonicartos.widget.stickygridheaders.StickyGridHeadersGridView;
 
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,7 +19,7 @@ import android.widget.AdapterView.OnItemClickListener;
 import java.io.File;
 import java.io.FilenameFilter;
 
-public class DirFragment extends SherlockFragment implements OnItemClickListener {
+public class DirFragment extends Fragment implements OnItemClickListener {
     private static final String ARG_COL_WIDTH = "arg_col_width";
     private static final String ARG_NUM_COLS = "arg_num_cols";
     private static final String ARG_PATH = "arg_id";
@@ -154,9 +154,9 @@ public class DirFragment extends SherlockFragment implements OnItemClickListener
         }
         
         if (filter == null) {
-            mFsAdapter = new FileSystemAdapter(getSherlockActivity(), mFile, headerMapper, mRootView);
+            mFsAdapter = new FileSystemAdapter(getActivity(), mFile, headerMapper, mRootView);
         } else {
-            mFsAdapter = new FileSystemAdapter(getSherlockActivity(), mFile, headerMapper, mRootView, filter);
+            mFsAdapter = new FileSystemAdapter(getActivity(), mFile, headerMapper, mRootView, filter);
         }
     }
 }
