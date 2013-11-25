@@ -1,8 +1,8 @@
 
 package com.tonicartos.component.internal;
 
-import com.tonicartos.component.R;
 import com.tonicartos.component.FilePickerFragment.HeaderMapper;
+import com.tonicartos.component.R;
 import com.tonicartos.widget.stickygridheaders.StickyGridHeadersBaseAdapter;
 
 import android.annotation.SuppressLint;
@@ -41,42 +41,51 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
     };
 
     private boolean mCaseInsensitive;
+
     /**
      * So the file observer events can update on the UI thread.
      */
     private FragmentActivity mContext;
+
     private File mDir;
+
     private FileComparator mFileComparator = new FileComparator();
+
     private DirObserver mFileObserver;
+
     private FilenameFilter mFilter;
+
     private Map<String, HeaderData> mHeaderMap;
+
     private List<HeaderData> mHeaders;
+
     private LayoutInflater mInflater;
+
     private HeaderMapper mHeaderMapper;
+
     private View mContainer;
 
     private View mLoadingView;
 
     private View mEmptyView;
 
-    public FileSystemAdapter(FragmentActivity context, File file,
-            HeaderMapper headerMapper, View container) {
+    public FileSystemAdapter(FragmentActivity context, File file, HeaderMapper headerMapper,
+            View container) {
         this(context, file, headerMapper, container, sDefaultFilter, false);
     }
 
-    public FileSystemAdapter(FragmentActivity context, File file,
-            HeaderMapper headerMapper, View container, boolean caseInsensitive) {
+    public FileSystemAdapter(FragmentActivity context, File file, HeaderMapper headerMapper,
+            View container, boolean caseInsensitive) {
         this(context, file, headerMapper, container, sDefaultFilter, caseInsensitive);
     }
 
-    public FileSystemAdapter(FragmentActivity context, File file,
-            HeaderMapper headerMapper, View container, FilenameFilter filter) {
+    public FileSystemAdapter(FragmentActivity context, File file, HeaderMapper headerMapper,
+            View container, FilenameFilter filter) {
         this(context, file, headerMapper, container, filter, false);
     }
 
-    public FileSystemAdapter(FragmentActivity context, File file,
-            HeaderMapper headerMapper, View container, final FilenameFilter filter,
-            boolean caseInsensitive) {
+    public FileSystemAdapter(FragmentActivity context, File file, HeaderMapper headerMapper,
+            View container, final FilenameFilter filter, boolean caseInsensitive) {
         super(context, android.R.layout.simple_list_item_1, android.R.id.text1);
 
         mHeaderMapper = headerMapper;
@@ -102,6 +111,9 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
             @Override
             protected ArrayList<String> doInBackground(File... files) {
                 String[] fs = files[0].list(filter);
+                if (fs == null) {
+                    return new ArrayList<String>();
+                }
                 // Do the initial sort in a background thread.
                 Arrays.sort(fs, mFileComparator);
                 return new ArrayList<String>(Arrays.asList(fs));
@@ -344,6 +356,7 @@ public class FileSystemAdapter extends ArrayAdapter<String> implements StickyGri
      */
     private final class HeaderData {
         public int count;
+
         public String header;
     }
 
