@@ -1,7 +1,7 @@
 
 package com.tonicartos.component;
 
-import com.astuetz.viewpager.extensions.PagerSlidingTabStrip;
+import com.astuetz.PagerSlidingTabStrip;
 import com.tonicartos.component.internal.DirPagerAdapter;
 
 import android.app.Activity;
