@@ -1,6 +1,13 @@
 # FilePicker
-A file picker for Android with a responsive UI that can be embedded in your app
-in a number of different ways.
+A file picker fragment for Android that can be embedded in your app.
+
+*File Picker now uses the new Android Studio/Gradle build system and project format. As such, it is incompatible with the present Eclipse/ANT project format.*
+
+## Example
+There will soon be an example hosted in another git repo.
+
+## Usage
+Integrating FilePicker into your project is easy. Simply add the FilePicker 
 
 ## Roadmap
 ### 0.2
